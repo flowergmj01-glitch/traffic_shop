@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500金句 - 交通＆觀光篇</title>
+    <!-- 引入 Tailwind CSS 處理樣式 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 與 Babel 以支援組件化語法 -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { background-color: #f3f4f6; }
+        
+        /* 網頁預覽版面設定 (固定比例字卡) */
+        .a4-landscape {
+            width: 297mm;
+            height: 209.5mm;
+            background: white;
+            margin: 0 auto;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.04);
+            overflow: hidden;
+            box-sizing: border-box;
+            padding: 16mm 20mm;
+            position: relative;
+            border-radius: 16px;
+        }
+
+        /* 翻頁動畫 */
+        @keyframes flipIn {
+            0% { transform: perspective(1500px) rotateY(15deg); opacity: 0; }
+            100% { transform: perspective(1500px) rotateY(0); opacity: 1; }
+        }
+        .page-flip-anim {
+            animation: flipIn 0.4s ease-out forwards;
+            transform-origin: center right;
+        }
+
+        /* 背景 Emoji 浮水印 */
+        .bg-emoji {
+            position: absolute;
+            user-select: none;
+            opacity: 0.12;
+            font-size: 4rem;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 隱藏捲軸 */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="text-gray-900 font-sans font-bold flex items-center justify-center min-h-screen py-10">
+    <div id="root" class="w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ===  ===
+        const sentences = [
+            { id: 120, jp: "東京[とうきょう]駅[えき]までください", cn: "請給我到東京車站的車票", v: { w: "駅[えき]", m: "車站", ej: "駅[えき]で友達[ともだち]と待[ま]ち合[あ]わせをします。", ec: "在車站和朋友會合。", extW: "改札口[かいさつぐち]", extM: "剪票口", extEj: "改札口[かいさつぐち]で待[ま]っています。", extEc: "我在剪票口等你。" }, g: { p: "〜まで", m: "到...(地點/時間)", ej: "大阪[おおさか]まで新幹線[しんかんせん]で行[い]きます。", ec: "搭新幹線到大阪。" } },
+            { id: 121, jp: "このバスは駅[えき]に行[い]きますか", cn: "這班公車會到車站嗎？", v: { w: "バス", m: "公車", ej: "毎日[まいにち]バスで学校[がっこう]へ通[かよ]っています。", ec: "每天搭公車上學。", extW: "終点[しゅうてん]", extM: "終點站", extEj: "このバスは終点[しゅうてん]まで行[い]きません。", extEc: "這班公車不到終點站。" }, g: { p: "〜に行[い]く", m: "去...(目的地)", ej: "明日[あす]、京都[きょうと]に行[い]く予定[よてい]です。", ec: "明天預定要去京都。" } },
+            { id: 122, jp: "英語[えいご]のメニューはありますか", cn: "有英文菜單嗎？", v: { w: "英語[えいご]", m: "英文", ej: "英語[えいご]を話[はな]します。", ec: "說英文。", extW: "通訳[つうやく]", extM: "口譯", extEj: "通訳[つうやく]をお願[ねが]いできますか。", extEc: "可以麻煩幫忙口譯嗎？" }, g: { p: "〜はありますか", m: "有...嗎？", ej: "お水[みず]はありますか。", ec: "有水嗎？" } },
+            { id: 123, jp: "おすすめは何[なん]ですか", cn: "有什麼推薦的嗎？", v: { w: "おすすめ", m: "推薦", ej: "店長[てんちょう]のおすすめです。", ec: "店長推薦。", extW: "名物[めいぶつ]", extM: "特產/名產", extEj: "この地域[ちいき]の名物[めいぶつ]は何[なん]ですか。", extEc: "這個地區的名產是什麼？" }, g: { p: "〜は何[なん]ですか", m: "...是什麼？", ej: "好[す]きな食[た]べ物[もの]は何[なん]ですか。", ec: "喜歡的食物是什麼？" } },
+            
+            { id: 124, jp: "バス乗[の]り場[ば]はどこですか", cn: "公車站牌在哪裡？", v: { w: "乗[の]り場[ば]", m: "乘車處", ej: "タクシー乗[の]り場[ば]は駅[えき]の東口[ひがしぐち]にあります。", ec: "計程車乘車處在車站東口。", extW: "時刻表[じこくひょう]", extM: "時刻表", extEj: "バスの時刻表[じこくひょう]を確認[かくにん]します。", extEc: "確認公車的時刻表。" }, g: { p: "〜はどこですか", m: "...在哪裡？", ej: "一番[いちばん]近[ちか]いトイレはどこですか。", ec: "最近的洗手間在哪裡？" } },
+            { id: 125, jp: "バスの時間[じかん]を教[おし]えてください", cn: "請告訴我公車的時間", v: { w: "時間[じかん]", m: "時間", ej: "約束[やくそく]の時間[じかん]に遅[おく]れないでください。", ec: "請不要遲到約定的時間。", extW: "間[ま]に合[あ]う", extM: "趕得上", extEj: "電車[でんしゃ]の時間[じかん]に間[ま]に合[あ]いました。", extEc: "趕上了電車的時間。" }, g: { p: "〜てください", m: "請...(請求)", ej: "道[みち]を教[おし]えてください。", ec: "請告訴我路怎麼走。" } },
+            { id: 126, jp: "お会計[かいけい]をお願[ねが]いします", cn: "麻煩結帳", v: { w: "お会計[かいけい]", m: "結帳", ej: "お会計[かいけい]はレジでします。", ec: "在收銀台結帳。", extW: "割[わ]り勘[かん]", extM: "各付各的", extEj: "今日[きょう]は割[わ]り勘[かん]にしましょう。", extEc: "今天我們各付各的吧。" }, g: { p: "〜をお願[ねが]いします", m: "麻煩給我...", ej: "お水[みず]をお願[ねが]いします。", ec: "麻煩給我水。" } },
+            { id: 127, jp: "これと同[おな]じものをください", cn: "請給我跟這個一樣的", v: { w: "同[おな]じ", m: "一樣的", ej: "彼[かれ]と同[おな]じ靴[くつ]です。", ec: "跟他一樣的鞋子。", extW: "似[に]ている", extM: "相似", extEj: "この二[ふた]つのデザインは似[に]ています。", extEc: "這兩個設計很相似。" }, g: { p: "〜をください", m: "請給我...", ej: "チケットをください。", ec: "請給我票。" } },
+            
+            { id: 128, jp: "どこで乗[の]り換[か]えですか", cn: "要在哪裡換車？", v: { w: "乗[の]り換[か]え", m: "轉車", ej: "乗[の]り換[か]えの案内[あんない]を見[み]ます。", ec: "看轉車的告示牌。", extW: "経由[けいゆ]", extM: "經由/途經", extEj: "大阪[おおさか]経由[けいゆ]で行[い]きます。", extEc: "經由大阪前往。" }, g: { p: "どこで〜か", m: "在哪裡...？", ej: "どこで切符[きっぷ]を買[か]いますか。", ec: "要在哪裡買車票？" } },
+            { id: 129, jp: "次[つぎ]の駅[えき]はどこですか", cn: "下一站是哪裡？", v: { w: "次[つぎ]", m: "下一個", ej: "次[つぎ]の休[やす]みは北海道[ほっかいどう]へ行[い]きます。", ec: "下個休假要去北海道。", extW: "順番[じゅんばん]", extM: "順序/輪到", extEj: "次[つぎ]はあなたの順番[じゅんばん]です。", extEc: "下一個換你的順序了。" }, g: { p: "〜の〜", m: "...的...", ej: "東京[とうきょう]の地下鉄[ちかてつ]は複雑[ふくざつ]です。", ec: "東京的地鐵很複雜。" } },
+            { id: 130, jp: "免税[めんぜい]できますか", cn: "可以免稅嗎？", v: { w: "免税[めんぜい]", m: "免稅", ej: "免税[めんぜい]店[てん]で買[か]います。", ec: "在免稅店買。", extW: "消費税[しょうひぜい]", extM: "消費稅", extEj: "消費税[しょうひぜい]は１０％です。", extEc: "消費稅是10%。" }, g: { p: "〜できますか", m: "可以...嗎？", ej: "ここで支払[しはら]いできますか。", ec: "可以在這裡付款嗎？" } },
+            { id: 131, jp: "試着[しちゃく]してもいいですか", cn: "可以試穿嗎？", v: { w: "試着[しちゃく]", m: "試穿", ej: "服[ふく]を試着[しちゃく]します。", ec: "試穿衣服。", extW: "ぴったり", extM: "剛好/合身", extEj: "サイズがぴったりです。", extEc: "尺寸剛好合身。" }, g: { p: "〜てもいいですか", m: "可以...嗎？(許可)", ej: "入[はい]ってもいいですか。", ec: "可以進去嗎？" } },
+            
+            { id: 132, jp: "まっすぐ行[い]ってください", cn: "請直走", v: { w: "まっすぐ", m: "直直地", ej: "この道[みち]をまっすぐ進[すす]みます。", ec: "沿著這條路直走。", extW: "突[つ]き当[あ]たり", extM: "盡頭/走到底", extEj: "道[みち]の突[つ]き当[あ]たりを右[みぎ]に曲[ま]がります。", extEc: "在道路盡頭右轉。" }, g: { p: "〜て形＋ください", m: "請...(指示)", ej: "気[き]をつけて帰[かえ]ってください。", ec: "請小心回家。" } },
+            { id: 133, jp: "右[みぎ]に曲[ま]がってください", cn: "請右轉", v: { w: "右[みぎ]", m: "右邊", ej: "右[みぎ]の手[て]を上[あ]げてください。", ec: "請舉起右手。", extW: "方向[ほうこう]", extM: "方向", extEj: "逆[ぎゃく]の方向[ほうこう]に進[すす]んでしまいました。", extEc: "走到相反方向了。" }, g: { p: "〜に曲[ま]がる", m: "轉向...", ej: "次[つぎ]の角[かど]を左[ひだり]に曲[ま]がります。", ec: "在下一個轉角左轉。" } },
+            { id: 134, jp: "もう少[すこ]し小[ちい]さいサイズはありますか", cn: "有再小一點的尺寸嗎？", v: { w: "少[すこ]し", m: "稍微", ej: "少[すこ]し待[ま]ってください。", ec: "請稍等一下。", extW: "少[すくな]なめ", extM: "偏少", extEj: "ご飯[はん]は少[すくな]なめでお願いします。", extEc: "飯請幫我用少一點。" }, g: { p: "もう＋数量", m: "再...", ej: "もう一度[いちど]言[い]ってください。", ec: "請再說一次。" } },
+            { id: 135, jp: "写真[しゃしん]を撮[と]ってもらえませんか", cn: "可以幫我拍照嗎？", v: { w: "写真[しゃしん]", m: "照片", ej: "綺麗[きれい]な写真[しゃしん]ですね。", ec: "好漂亮的照片呢。", extW: "風景[ふうけい]", extM: "風景", extEj: "綺麗[きれい]な風景[ふうけい]を撮[と]りました。", extEc: "拍了美麗的風景。" }, g: { p: "〜てもらえませんか", m: "能請您幫我...嗎？", ej: "手伝[てつだ]ってもらえませんか。", ec: "能請您幫忙嗎？" } },
+            
+            { id: 136, jp: "そこで止[と]めてください", cn: "請在那邊停車", v: { w: "止[と]める", m: "停下", ej: "駐車場[ちゅうしゃじょう]に車[くるま]を止[と]めます。", ec: "把車停在停車場。", extW: "駐車[ちゅうしゃ]違反[いはん]", extM: "違規停車", extEj: "ここは駐車[ちゅうしゃ]違反[いはん]になります。", extEc: "停這裡會變成違規停車。" }, g: { p: "〜で", m: "在...(動作發生的場所)", ej: "駅[えき]で切符[きっぷ]を買[か]います。", ec: "在車站買票。" } },
+            { id: 137, jp: "ここで降[お]ります", cn: "我要在這裡下車", v: { w: "降[お]ります", m: "下車", ej: "次[つぎ]のバス停[てい]で降[お]ります。", ec: "在下一個公車站下車。", extW: "乗[の]り過[す]ごす", extM: "坐過站", extEj: "寝[ね]ていて駅[えき]を乗[の]り過[す]ごしました。", extEc: "因為睡著而坐過站了。" }, g: { p: "〜で降[お]りる", m: "在...下車", ej: "新宿[しんじゅく]駅[えき]で電車[でんしゃ]を降[お]ります。", ec: "在新宿站下電車。" } },
+            { id: 138, jp: "Wi-Fi[ワイファイ]はありますか", cn: "有Wi-Fi嗎？", v: { w: "ワイファイ", m: "Wi-Fi", ej: "フリーワイファイを使[つか]います。", ec: "使用免費Wi-Fi。", extW: "接続[せつぞく]", extM: "連接", extEj: "ネットの接続[せつぞく]が悪[わる]いです。", extEc: "網路連接狀況不好。" }, g: { p: "名詞＋はありますか", m: "有提供...嗎？", ej: "充電器[じゅうでんき]はありますか。", ec: "有充電器嗎？" } },
+            { id: 139, jp: "クレジットカードは使[つか]えますか", cn: "可以使用信用卡嗎？", v: { w: "クレジットカード", m: "信用卡", ej: "カードで支払[しはら]います。", ec: "用卡付款。", extW: "暗証[あんしょう]番号[ばんごう]", extM: "密碼", extEj: "暗証[あんしょう]番号[ばんごう]を入力[にゅうりょく]してください。", extEc: "請輸入密碼。" }, g: { p: "〜は使[つか]えますか", m: "能使用...嗎？", ej: "このクーポンは使[つか]えますか。", ec: "可以使用這張優惠券嗎？" } },
+            
+            { id: 140, jp: "近[ちか]くに駅[えき]はありますか", cn: "這附近有車站嗎？", v: { w: "近[ちか]く", m: "附近", ej: "近[ちか]くのスーパーに行[い]きます。", ec: "去附近的超市。", extW: "周辺[しゅうへん]", extM: "周邊", extEj: "駅[えき]の周辺[しゅうへん]を散策[さんさく]します。", extEc: "在車站周邊散步。" }, g: { p: "〜に〜があります", m: "...有...", ej: "あそこにコンビニがあります。", ec: "那裡有便利商店。" } },
+            { id: 141, jp: "どのくらいかかりますか", cn: "大約需要花多少時間？", v: { w: "どのくらい", m: "多久、多少", ej: "日本[にほん]語[ご]をどのくらい勉強[べんきょう]しましたか。", ec: "日文學了多久？", extW: "予算[よさん]", extM: "預算", extEj: "旅行[りょこう]の予算[よさん]はどのくらいですか。", extEc: "旅行的預算大約多少？" }, g: { p: "〜かかります", m: "花費(時間/金錢)", ej: "東京[とうきょう]まで２時間[じかん]かかります。", ec: "到東京要花兩小時。" } },
+            { id: 142, jp: "予約[よやく]している〇〇です", cn: "我是有預約的〇〇", v: { w: "予約[よやく]", m: "預約", ej: "ホテルを予約[よやく]しました。", ec: "預約了飯店。", extW: "満室[まんしつ]", extM: "客滿(房間)", extEj: "今日[きょう]のホテルは満室[まんしつ]です。", extEc: "今天的飯店客滿了。" }, g: { p: "〜している", m: "處於...狀態", ej: "今[いま]、勉強[べんきょう]しています。", ec: "現在正在讀書。" } },
+            { id: 143, jp: "荷物[にもつ]を預[あず]かってもらえますか", cn: "可以寄放行李嗎？", v: { w: "荷物[にもつ]", m: "行李", ej: "重[おも]い荷物[にもつ]を持[も]ちます。", ec: "拿著重行李。", extW: "手荷物[てにもつ]", extM: "隨身行李", extEj: "手荷物[てにもつ]は上[うえ]の棚[たな]に入[い]れてください。", extEc: "請將隨身行李放進上方置物架。" }, g: { p: "〜を預[あず]かる", m: "保管...", ej: "貴重品[きちょうひん]を預[あず]かります。", ec: "保管貴重物品。" } },
+            
+            { id: 144, jp: "ここから歩[ある]けますか", cn: "從這裡走得到嗎？", v: { w: "歩[ある]く", m: "走路", ej: "毎日[まいにち]３０分[ぷん]歩[ある]きます。", ec: "每天走路30分鐘。", extW: "徒歩[とほ]", extM: "徒步", extEj: "ここから徒歩[とほ]で５分[ふん]です。", extEc: "從這裡徒步5分鐘。" }, g: { p: "可能形 (〜けます)", m: "能夠...", ej: "日本[にほん]語[ご]の新聞[しんぶん]が読[よ]めます。", ec: "能看懂日文報紙。" } },
+            { id: 145, jp: "遠[とお]いですか", cn: "很遠嗎？", v: { w: "遠[とお]い", m: "遠的", ej: "家[いえ]から駅[えき]まで遠[とお]いです。", ec: "從家裡到車站很遠。", extW: "距離[きょり]", extM: "距離", extEj: "ここからかなりの距離[きょり]があります。", extEc: "離這裡有相當長的距離。" }, g: { p: "形容詞＋ですか", m: "...嗎？", ej: "日本[にほん]の夏[なつ]は暑[あつ]いですか。", ec: "日本的夏天熱嗎？" } },
+            { id: 146, jp: "トイレはどこですか", cn: "洗手間在哪裡？", v: { w: "トイレ", m: "洗手間", ej: "トイレに行[い]きます。", ec: "去洗手間。", extW: "化粧室[けしょうしつ]", extM: "化妝室", extEj: "化粧室[けしょうしつ]は二階[にかい]にございます。", extEc: "化妝室在二樓。" }, g: { p: "場所＋はどこですか", m: "在哪裡？", ej: "駅[えき]はどこですか。", ec: "車站在哪裡？" } },
+            { id: 147, jp: "お水[みず]をもらえますか", cn: "可以給我水嗎？", v: { w: "水[みず]", m: "水", ej: "冷[つめ]たい水[みず]を飲[の]みます。", ec: "喝冷水。", extW: "常温[じょうおん]", extM: "常溫", extEj: "常温[じょうおん]のお水[みず]をください。", extEc: "請給我常溫的水。" }, g: { p: "〜をもらえますか", m: "可以給我...嗎？", ej: "メニューをもらえますか。", ec: "可以給我菜單嗎？" } },
+            
+            { id: 148, jp: "ここはどこですか", cn: "這裡是哪裡？", v: { w: "ここ", m: "這裡", ej: "ここは東京[とうきょう]で一番[いちばん]大[おお]きい公園[こうえん]です。", ec: "這裡是東京最大的公園。", extW: "現在地[げんざいち]", extM: "現在位置", extEj: "地図[ちず]で現在地[げんざいち]を確認[かくにん]します。", extEc: "看地圖確認現在位置。" }, g: { p: "ここは〜です", m: "這裡是...", ej: "ここは図書[としょ]館[かん]です。静[しず]かにしてください。", ec: "這裡是圖書館。請保持安靜。" } },
+            { id: 149, jp: "道[みち]に迷[まよ]いました", cn: "我迷路了", v: { w: "迷[まよ]う", m: "迷失、猶豫", ej: "メニューが多[おお]くて迷[まよ]います。", ec: "菜單太多猶豫不決。", extW: "道案内[みちあんない]", extM: "指路/帶路", extEj: "地元[じもと]の人[ひと]に道案内[みちあんない]を頼[たの]みました。", extEc: "拜託當地人幫忙指路。" }, g: { p: "〜に迷[まよ]う", m: "在...迷失", ej: "森[もり]の中[なか]で道[みち]に迷[まよ]いました。", ec: "在森林裡迷路了。" } },
+            { id: 150, jp: "別々[べつべつ]に払[はら]えますか", cn: "可以分開付嗎？", v: { w: "別々[べつべつ]", m: "分開", ej: "別々[べつべつ]に包[つつ]んでください。", ec: "請分開包裝。", extW: "一[いっ]緒[しょ]に", extM: "一起", extEj: "お会計[かいけい]は一[いっ]緒[しょ]でいいですか。", extEc: "結帳一起付可以嗎？" }, g: { p: "〜に払[はら]う", m: "以...方式付款", ej: "現金[げんきん]で払[はら]います。", ec: "用現金付。" } },
+            { id: 151, jp: "袋[ふくろ]は結構[けっこう]です", cn: "不用袋子", v: { w: "袋[ふくろ]", m: "袋子", ej: "袋[ふくろ]に入[い]れます。", ec: "放進袋子裡。", extW: "紙袋[かみぶくろ]", extM: "紙袋", extEj: "プレゼント用[よう]の紙袋[かみぶくろ]はありますか。", extEc: "有送禮用的紙袋嗎？" }, g: { p: "〜は結構[けっこう]です", m: "不需要...", ej: "レシートは結構[けっこう]です。", ec: "不用收據。" } },
+            
+            { id: 152, jp: "タクシーを呼[よ]んでください", cn: "請幫我叫計程車", v: { w: "呼[よ]ぶ", m: "呼叫", ej: "友達[ともだち]をパーティーに呼[よ]びます。", ec: "邀請朋友來派對。", extW: "迎[むか]えに来[く]る", extM: "來接(人)", extEj: "駅[えき]まで迎[むか]えに来[き]てくれますか。", extEc: "可以來車站接我嗎？" }, g: { p: "〜を呼[よ]ぶ", m: "叫...", ej: "警察[けいさつ]を呼[よ]んでください！", ec: "請叫警察！" } },
+            { id: 153, jp: "この住所[じゅうしょ]までお願[ねが]いします", cn: "麻煩請到這個地址", v: { w: "住所[じゅうしょ]", m: "地址", ej: "ホテルに住所[じゅうしょ]を書[か]きます。", ec: "在飯店寫下地址。", extW: "宛先[あてさき]", extM: "收件人地址", extEj: "荷物[にもつ]の宛先[あてさき]を間違[まちが]えました。", extEc: "弄錯包裹的收件地址了。" }, g: { p: "この〜", m: "這個...", ej: "この本[ほん]はとても面白[おもしろ]いです。", ec: "這本書非常有趣。" } },
+            { id: 154, jp: "これを返品[へんぴん]できますか", cn: "這個可以退貨嗎？", v: { w: "返品[へんぴん]", m: "退貨", ej: "不良品[ふりょうひん]を返品[へんぴん]します。", ec: "將不良品退貨。", extW: "交換[こうかん]", extM: "更換", extEj: "サイズが合[あ]わないので交換[こうかん]したいです。", extEc: "因為尺寸不合想換貨。" }, g: { p: "これを＋動詞", m: "對這東西做某動作", ej: "これを買[か]います。", ec: "我要買這個。" } },
+            { id: 155, jp: "アレルギーがあります", cn: "我有過敏", v: { w: "アレルギー", m: "過敏", ej: "猫[ねこ]アレルギーです。", ec: "對貓過敏。", extW: "成分[せいぶん]", extM: "成分", extEj: "商品[しょうひん]の成分[せいぶん]表[ひょう]を確認[かくにん]します。", extEc: "確認商品的成分表。" }, g: { p: "〜があります", m: "有...", ej: "熱[ねつ]があります。", ec: "發燒了。" } },
+            
+            { id: 156, jp: "いくらかかりますか", cn: "需要多少錢？", v: { w: "いくら", m: "多少錢", ej: "この時計[とけい]はいくらですか。", ec: "這支手錶多少錢？", extW: "料金[りょうきん]", extM: "費用", extEj: "追加[ついか]料金[りょうきん]はかかりますか。", extEc: "需要加收額外費用嗎？" }, g: { p: "疑問詞＋かかりますか", m: "花費多少", ej: "修理[しゅうり]にいくらかかりますか。", ec: "修理要花多少錢？" } },
+            { id: 157, jp: "切符[きっぷ]をなくしました", cn: "我把車票弄丟了", v: { w: "なくす", m: "弄丟", ej: "財布[さいふ]をなくして困[こま]っています。", ec: "把錢包弄丟了很苦惱。", extW: "探[さが]す", extM: "尋找", extEj: "落[お]とし物[もの]を探[さが]しています。", extEc: "正在找遺失物品。" }, g: { p: "〜をなくす", m: "把...弄丟", ej: "パスポートをなくしました。", ec: "把護照弄丟了。" } },
+            { id: 158, jp: "辛[から]くしないでください", cn: "請不要做太辣", v: { w: "辛[から]い", m: "辣的", ej: "辛[から]い料理[りょうり]が好[す]きです。", ec: "喜歡吃辣的料理。", extW: "甘口[あまくち]", extM: "偏甜/不辣", extEj: "カレーは甘口[あまくち]でお願[ねが]いします。", extEc: "咖哩請給我偏甜口味。" }, g: { p: "〜ないでください", m: "請不要...", ej: "走[はし]らないでください。", ec: "請不要跑。" } },
+            { id: 159, jp: "両替[りょうがえ]できますか", cn: "可以換錢嗎？", v: { w: "両替[りょうがえ]", m: "換錢", ej: "千[せん]円[えん]札[さつ]に両替[りょうがえ]します。", ec: "換成千圓鈔。", extW: "為替[かわせ]レート", extM: "匯率", extEj: "今日[きょう]の為替[かわせ]レートはいくらですか。", extEc: "今天的匯率是多少？" }, g: { p: "〜できます", m: "能夠...", ej: "日本[にほん]語[ご]が少[すこ]しできます。", ec: "稍微會一點日文。" } },
+            
+            { id: 160, jp: "お釣[つ]りはいらないです", cn: "不用找零錢了", v: { w: "お釣[つ]り", m: "找的零錢", ej: "お釣[つ]りを受[う]け取[と]ります。", ec: "收下找的零錢。", extW: "小銭[こぜに]", extM: "零錢(硬幣)", extEj: "小銭[こぜに]を持[も]っていません。", extEc: "我沒有帶零錢。" }, g: { p: "〜はいらないです", m: "不需要...", ej: "袋[ふくろ]はいらないです。", ec: "不需要袋子。" } },
+            { id: 161, jp: "回数券[かいすうけん]はありますか", cn: "有賣回數票嗎？", v: { w: "回数券[かいすうけん]", m: "回數票", ej: "回数券[かいすうけん]を買[か]うと安[やす]くなります。", ec: "買回數票會比較便宜。", extW: "定期券[ていきけん]", extM: "定期票", extEj: "通勤[つうきん]のために定期券[ていきけん]を買[か]います。", extEc: "為了通勤買定期票。" }, g: { p: "〜はありますか", m: "有...嗎？(尋問有無)", ej: "英語[えいご]のメニューはありますか。", ec: "有英文菜單嗎？" } },
+            { id: 162, jp: "コインロッカーはどこですか", cn: "投幣式置物櫃在哪裡？", v: { w: "ロッカー", m: "置物櫃", ej: "ロッカーに荷物[にもつ]を入[い]れます。", ec: "把行李放進置物櫃。", extW: "空[あ]き", extM: "空位/空隙", extEj: "コインロッカーに空[あ]きがありません。", extEc: "投幣式置物櫃沒有空位了。" }, g: { p: "外来語", m: "外來語", ej: "ホテルを探[さが]します。", ec: "找飯店。" } },
+            { id: 163, jp: "営業[えいぎょう]時間[じかん]は何時[なんじ]までですか", cn: "營業時間到幾點？", v: { w: "時間[じかん]", m: "時間", ej: "時間[じかん]がありません。", ec: "沒有時間了。", extW: "定休日[ていきゅうび]", extM: "公休日", extEj: "火曜日[かようび]は定休日[ていきゅうび]です。", extEc: "星期二是公休日。" }, g: { p: "何時[なんじ]まで", m: "到幾點", ej: "会議[かいぎ]は何時[なんじ]までですか。", ec: "會議到幾點？" } },
+            
+            { id: 164, jp: "自由席[じゆうせき]ありますか", cn: "有自由座嗎？", v: { w: "自由席[じゆうせき]", m: "自由座", ej: "自由席[じゆうせき]は混[こん]んでいます。", ec: "自由座很擁擠。", extW: "満席[まんせき]", extM: "客滿(座位)", extEj: "新幹線[しんかんせん]の指定席[していせき]は満席[まんせき]です。", extEc: "新幹線對號座客滿了。" }, g: { p: "名詞＋ありますか", m: "口語省略助詞「は/が」", ej: "お湯[ゆ]ありますか。", ec: "有熱水嗎？" } },
+            { id: 165, jp: "ここに座[すわ]ってもいいですか", cn: "我可以坐在這裡嗎？", v: { w: "座[すわ]る", m: "坐下", ej: "椅子[いす]に座[すわ]って休[やす]みます。", ec: "坐在椅子上休息。", extW: "譲[ゆず]る", extM: "讓座", extEj: "お年寄[としよ]りに席[せき]を譲[ゆず]ります。", extEc: "讓座給年長者。" }, g: { p: "〜てもいいですか", m: "可以...嗎？(請求許可)", ej: "写真[しゃしん]を撮[と]ってもいいですか。", ec: "可以拍照嗎？" } },
+            { id: 166, jp: "電子[でんし]マネーで払[はら]います", cn: "我用電子支付付款", v: { w: "払[はら]う", m: "支付", ej: "カードで払[はら]います。", ec: "用信用卡付。", extW: "チャージ", extM: "儲值", extEj: "ICカードにチャージしたいです。", extEc: "我想儲值IC卡。" }, g: { p: "〜で", m: "使用(手段/方法)", ej: "箸[はし]で食[た]べます。", ec: "用筷子吃。" } },
+            { id: 167, jp: "お持[も]ち帰[かえ]りでお願[ねが]いします", cn: "麻煩外帶", v: { w: "持[も]ち帰[かえ]り", m: "外帶", ej: "お持[も]ち帰[かえ]り用[よう]の袋[ふくろ]です。", ec: "外帶用的袋子。", extW: "店内[てんない]", extM: "內用", extEj: "店内[てんない]でお召[め]し上[あ]がりですか。", extEc: "請問要內用嗎？" }, g: { p: "名詞＋でお願[ねが]いします", m: "以...方式麻煩了", ej: "急[いそ]ぎでお願[ねが]いします。", ec: "麻煩幫我趕一下。" } },
+            
+            { id: 168, jp: "交番[こうばん]はどこですか", cn: "警察局/派出所在哪裡？", v: { w: "交番[こうばん]", m: "派出所", ej: "財布[さいふ]を拾[ひろ]って交番[こうばん]に届[とど]けました。", ec: "撿到錢包送到派出所了。", extW: "警察署[けいさつしょ]", extM: "警察局(較大)", extEj: "警察署[けいさつしょ]で紛失[ふんしつ]届[とどけ]を出[だ]します。", extEc: "在警察局提交遺失申報。" }, g: { p: "〜はどこですか", m: "詢問地點", ej: "試着室[しちゃくしつ]はどこですか。", ec: "試衣間在哪裡？" } },
+            { id: 169, jp: "駐車場[ちゅうしゃじょう]はどこですか", cn: "停車場在哪裡？", v: { w: "駐車場[ちゅうしゃじょう]", m: "停車場", ej: "駐車場[ちゅうしゃじょう]は地下[ちか]にあります。", ec: "停車場在地下室。", extW: "満車[まんしゃ]", extM: "車滿", extEj: "駐車場[ちゅうしゃじょう]は今[いま]、満車[まんしゃ]です。", extEc: "停車場現在客滿了。" }, g: { p: "名詞＋は", m: "作為主語", ej: "この駐車場[ちゅうしゃじょう]は無料[むりょう]です。", ec: "這個停車場是免費的。" } },
+            { id: 170, jp: "これを試食[ししょく]してもいいですか", cn: "這個可以試吃嗎？", v: { w: "試食[ししょく]", m: "試吃", ej: "ケーキを試食[ししょく]します。", ec: "試吃蛋糕。", extW: "一口[ひとくち]", extM: "吃一口", extEj: "一口[ひとくち]だけ食[た]べてみます。", extEc: "我試吃一口看看。" }, g: { p: "〜てもいいですか", m: "請求允許", ej: "見[み]てもいいですか。", ec: "可以看嗎？" } },
+            { id: 171, jp: "救急車[きゅうきゅうしゃ]を呼[よ]んでください", cn: "請叫救護車", v: { w: "救急車[きゅうきゅうしゃ]", m: "救護車", ej: "救急車[きゅうきゅうしゃ]が来[き]ました。", ec: "救護車來了。", extW: "怪我[けが]", extM: "受傷", extEj: "足[あし]に大[おお]きな怪我[けが]をしました。", extEc: "腳受了重傷。" }, g: { p: "〜を呼[よ]ぶ", m: "呼叫...", ej: "医者[いしゃ]を呼[よ]んでください。", ec: "請叫醫生。" } },
+            
+            { id: 172, jp: "ICカードは使[つか]えますか", cn: "可以使用IC卡嗎？", v: { w: "使[つか]える", m: "可以使用", ej: "このクーポンは今日[きょう]まで使[つか]えます。", ec: "這張優惠券可以使用到今天。", extW: "対応[たいおう]する", extM: "支援/對應", extEj: "この店[みせ]は電子[でんし]マネーに対応[たいおう]しています。", extEc: "這家店有支援電子支付。" }, g: { p: "可能形＋か", m: "可以...嗎？", ej: "クレジットカードは使[つか]えますか。", ec: "可以使用信用卡嗎？" } },
+            { id: 173, jp: "乗[の]り換[か]えはありますか", cn: "需要換車嗎？", v: { w: "乗[の]り換[か]え", m: "轉車", ej: "乗[の]り換[か]えに時間[じかん]がかかります。", ec: "轉車需要花時間。", extW: "直通[ちょくつう]", extM: "直達", extEj: "この電車[でんしゃ]は空港[くうこう]まで直通[ちょくつう]です。", extEc: "這班電車直達機場。" }, g: { p: "名詞＋はありますか", m: "有沒有...", ej: "質問[しつもん]はありますか。", ec: "有問題嗎？" } },
+            { id: 174, jp: "パスポートを落[お]としました", cn: "我弄丟了護照", v: { w: "落[お]とす", m: "掉落、遺失", ej: "財布[さいふ]を落[お]としました。", ec: "弄丟錢包了。", extW: "見[み]つかる", extM: "找到", extEj: "落[お]とした財布[さいふ]が見[み]つかりました。", extEc: "弄丟的錢包找到了。" }, g: { p: "〜を落[お]とす", m: "弄掉...", ej: "スマホを落[お]としました。", ec: "弄掉了手機。" } },
+            { id: 175, jp: "ここで写真[しゃしん]を撮[と]ってもいいですか", cn: "可以在這裡拍照嗎？", v: { w: "撮[と]る", m: "拍照", ej: "記念[きねん]写真[しゃしん]を撮[と]ります。", ec: "拍紀念照。", extW: "撮影[さつえい]禁止[きんし]", extM: "禁止攝影", extEj: "美術館[びじゅつかん]の中[なか]は撮影[さつえい]禁止[きんし]です。", extEc: "美術館內禁止攝影。" }, g: { p: "場所＋で", m: "在...(動作發生點)", ej: "公園[こうえん]で遊[あそ]びます。", ec: "在公園玩。" } },
+            
+            { id: 176, jp: "次[つぎ]のバスはいつですか", cn: "下一班公車是什麼時候？", v: { w: "いつ", m: "什麼時候", ej: "日本[にほん]へはいつ行[い]きますか。", ec: "什麼時候要去日本？", extW: "予定[よてい]", extM: "預定/計畫", extEj: "出発[しゅっぱつ]の予定[よてい]は何時[なんじ]ですか。", extEc: "預計幾點出發？" }, g: { p: "名詞＋はいつですか", m: "...是什麼時候？", ej: "夏休[なつやす]みはいつですか。", ec: "暑假是什麼時候？" } },
+            { id: 177, jp: "買[か]い物[もの]に行[い]きたいです", cn: "我想去購物", v: { w: "買[か]い物[もの]", m: "購物", ej: "週末[しゅうまつ]はデパートへ買[か]い物[もの]に行[い]きます。", ec: "週末去百貨公司購物。", extW: "お土産[みやげ]", extM: "伴手禮", extEj: "家族[かぞく]にお土産[みやげ]を買[か]います。", extEc: "買伴手禮給家人。" }, g: { p: "〜たい", m: "想...(做某事)", ej: "日本[にほん]の美味[おい]しいラーメンを食[た]べたいです。", ec: "想吃日本好吃的拉麵。" } },
+            { id: 178, jp: "一番[いちばん]人気[にんき]のものはどれですか", cn: "哪一個是最受歡迎的？", v: { w: "人気[にんき]", m: "受歡迎", ej: "この店[みせ]は人気[にんき]があります。", ec: "這家店很受歡迎。", extW: "流行[はや]る", extM: "流行", extEj: "若者[わかもの]の間[あいだ]で流行[はや]っている店[みせ]です。", extEc: "在年輕人之間很流行的店。" }, g: { p: "一番[いちばん]〜", m: "最...", ej: "一番[いちばん]安[やす]いのはどれですか。", ec: "最便宜的是哪一個？" } },
+            { id: 179, jp: "領収書[りょうしゅうしょ]をお願[ねが]いします", cn: "請給我收據", v: { w: "領収書[りょうしゅうしょ]", m: "收據", ej: "領収書[りょうしゅうしょ]をもらいます。", ec: "拿收據。", extW: "宛名[あてな]", extM: "抬頭", extEj: "領収書[りょうしゅうしょ]の宛名[あてな]はどうしますか。", extEc: "收據的抬頭要怎麼寫？" }, g: { p: "名詞＋をお願[ねが]いします", m: "麻煩給我...", ej: "タオルをお願[ねが]いします。", ec: "麻煩給我毛巾。" } }
+        ];
+
+        // 交通與觀光相關 Emoji 池
+        const transportEmojis = ["🚆", "🚌", "🚕", "🚇", "🚏", "🚦", "🗺️", "🚉", "🚅", "🛍️", "🍜", "📸", "⛩️", "🏨"];
+
+        // 整理資料成每頁 2 句 -> 總共 30 頁
+        const pagesData = [];
+        for (let i = 0; i < sentences.length; i += 2) {
+            pagesData.push({
+                p: (i / 2) + 1,
+                s1: sentences[i],
+                s2: sentences[i+1],
+                bgEmojis: [
+                    transportEmojis[i % transportEmojis.length],
+                    transportEmojis[(i + 1) % transportEmojis.length],
+                    transportEmojis[(i + 2) % transportEmojis.length]
+                ]
+            });
+        }
+        const totalPages = pagesData.length; // 30 pages
+
+        // === 漢字[假名] -> Ruby 解析器 ===
+        const parseFurigana = (text) => {
+          if (!text) return text;
+          const regex = /([\u4e00-\u9fff々]+)\[([ぁ-んァ-ンa-zA-Z0-9]+)\]/g;
+          const elements = [];
+          let lastIndex = 0;
+          let match;
+
+          while ((match = regex.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+              elements.push(<span key={`text-${lastIndex}`}>{text.substring(lastIndex, match.index)}</span>);
+            }
+            elements.push(
+              <ruby key={`ruby-${match.index}`} className="group relative px-[2px]">
+                {match[1]}
+                <rt className="text-[0.55em] text-gray-500 font-bold leading-none -translate-y-1">{match[2]}</rt>
+              </ruby>
+            );
+            lastIndex = regex.lastIndex;
+          }
+          if (lastIndex < text.length) {
+            elements.push(<span key={`text-${lastIndex}`}>{text.substring(lastIndex)}</span>);
+          }
+          return elements;
+        };
+
+        // === 封面元件 (Page 0) ===
+        const CoverPage = ({ onNext }) => (
+          <div className="a4-landscape flex flex-col items-center justify-center bg-blue-50 border-[12px] border-blue-300 relative page-flip-anim cursor-pointer" onClick={onNext}>
+            {/* Background Colorful Emojis */}
+            <div className="bg-emoji top-10 left-10 rotate-12" style={{opacity: 0.25, fontSize: '7rem'}}>🚆</div>
+            <div className="bg-emoji bottom-10 right-10 -rotate-12" style={{opacity: 0.25, fontSize: '7rem'}}>🛍️</div>
+            <div className="bg-emoji top-20 right-20" style={{opacity: 0.2, fontSize: '6rem'}}>🚌</div>
+            <div className="bg-emoji bottom-20 left-20" style={{opacity: 0.2, fontSize: '6rem'}}>📸</div>
+            <div className="bg-emoji top-1/3 left-1/4 rotate-45" style={{opacity: 0.15, fontSize: '5rem'}}>🗺️</div>
+            <div className="bg-emoji bottom-1/3 right-1/4 -rotate-45" style={{opacity: 0.15, fontSize: '5rem'}}>🏨</div>
+
+            <div className="bg-white/95 p-16 rounded-[2.5rem] shadow-2xl backdrop-blur-md text-center border-4 border-yellow-300 z-10 w-4/5 relative">
+              <div className="absolute -top-10 -left-10 text-7xl rotate-[-15deg] drop-shadow-lg">🚅</div>
+              <div className="absolute -bottom-8 -right-8 text-7xl rotate-[15deg] drop-shadow-lg">🍜</div>
+              
+              <h2 className="text-3xl text-blue-500 font-bold mb-6 tracking-widest bg-blue-100 inline-block px-8 py-2.5 rounded-full">實用日語對話集</h2>
+              <h1 className="text-7xl font-black text-gray-800 mb-10 leading-tight drop-shadow-sm">
+                500金句<br/>
+                <span className="text-orange-500">交通＆觀光篇</span> 🚉🛍️
+              </h1>
+              <div className="inline-block bg-yellow-400 text-yellow-900 px-10 py-3.5 rounded-full text-3xl font-black shadow-lg border-2 border-yellow-500">
+                No.120 ～ No.179
+              </div>
+              <p className="mt-8 text-gray-600 font-bold text-xl">每頁 2 句 ＋ N4/N3 延伸單字補充</p>
+            </div>
+            
+            <div className="absolute bottom-6 right-10 text-blue-400 text-2xl font-black animate-pulse">
+              點擊畫面翻開第一頁 ➡️
+            </div>
+          </div>
+        );
+
+        // === 金句卡片元件 (一頁兩句配置，加入延伸單字) ===
+        const SentenceCard = ({ data, theme }) => {
+            if (!data) return null;
+            const colors = {
+                1: { bg: 'bg-pink-50', border: 'border-pink-200', tag: 'bg-pink-500', text: 'text-pink-700', boxBorder: 'border-pink-100', icon: 'bg-pink-400' },
+                2: { bg: 'bg-blue-50', border: 'border-blue-200', tag: 'bg-blue-500', text: 'text-blue-700', boxBorder: 'border-blue-100', icon: 'bg-blue-400' },
+                3: { bg: 'bg-yellow-50', border: 'border-yellow-200', tag: 'bg-yellow-500', text: 'text-yellow-700', boxBorder: 'border-yellow-100', icon: 'bg-yellow-500' },
+                4: { bg: 'bg-purple-50', border: 'border-purple-200', tag: 'bg-purple-500', text: 'text-purple-700', boxBorder: 'border-purple-100', icon: 'bg-purple-400' }
+            };
+            const c = colors[theme];
+
+            return (
+              <div className={`flex-1 ${c.bg} rounded-3xl p-6 border-[3px] ${c.border} shadow-sm flex flex-col relative overflow-hidden`}>
+                <div className="flex justify-between items-start mb-4 z-10">
+                  <span className={`${c.tag} text-white text-xl px-5 py-2 rounded-full shadow-md font-black tracking-widest border border-white/50`}>
+                    No. {data.id}
+                  </span>
+                </div>
+                
+                {/* 標題句 */}
+                <div className="mb-4 px-2 z-10 text-center">
+                  <h3 className={`text-[1.8rem] font-black ${c.text} leading-tight`}>
+                    {parseFurigana(data.jp)}
+                  </h3>
+                  <p className="text-[1.25rem] text-gray-800 font-bold bg-white/90 py-2 px-6 rounded-2xl inline-block shadow-sm border border-gray-100 mt-3">
+                    {data.cn}
+                  </p>
+                </div>
+
+                {/* 延伸學習區 (單字 + 文法) */}
+                <div className="mt-auto flex flex-col gap-3 z-10">
+                    
+                    {/* 整合的單字卡 (原單字 + N4/N3延伸) */}
+                    <div className={`bg-white/85 p-4 rounded-2xl border-2 ${c.boxBorder} shadow-sm flex flex-col gap-3`}>
+                        {/* 原始單字 */}
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className={`${c.icon} text-white text-sm px-3 py-1 rounded-lg font-black`}>單字</span>
+                                <span className="font-black text-xl text-gray-800">{parseFurigana(data.v.w)}</span>
+                                <span className="text-gray-500 text-base font-bold">({data.v.m})</span>
+                            </div>
+                            <div className="pl-2 border-l-4 border-gray-200">
+                                <p className="text-[1.1rem] font-bold text-gray-800">{parseFurigana(data.v.ej)}</p>
+                                <p className="text-[1rem] text-gray-500 font-bold mt-0.5">{data.v.ec}</p>
+                            </div>
+                        </div>
+                        
+                        {/* 延伸補充 (N4-N3) */}
+                        <div className="border-t-[1.5px] border-gray-200/80 pt-3">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className={`bg-indigo-400 text-white text-sm px-3 py-1 rounded-lg font-black`}>N4-N3 延伸</span>
+                                <span className="font-black text-xl text-indigo-900">{parseFurigana(data.v.extW)}</span>
+                                <span className="text-gray-500 text-base font-bold">({data.v.extM})</span>
+                            </div>
+                            <div className="pl-2 border-l-4 border-indigo-200">
+                                <p className="text-[1.1rem] font-bold text-gray-800">{parseFurigana(data.v.extEj)}</p>
+                                <p className="text-[1rem] text-gray-500 font-bold mt-0.5">{data.v.extEc}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 文法卡 */}
+                    <div className={`bg-white/85 p-4 rounded-2xl border-2 ${c.boxBorder} shadow-sm`}>
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className={`${c.icon} text-white text-sm px-3 py-1 rounded-lg font-black`}>文法</span>
+                            <span className="font-black text-xl text-gray-800">{parseFurigana(data.g.p)}</span>
+                            <span className="text-gray-500 text-base font-bold">({data.g.m})</span>
+                        </div>
+                        <div className="pl-2 border-l-4 border-gray-200">
+                            <p className="text-[1.1rem] font-bold text-gray-800">{parseFurigana(data.g.ej)}</p>
+                            <p className="text-[1rem] text-gray-500 font-bold mt-0.5">{data.g.ec}</p>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            );
+        };
+
+        // === 內容頁元件 ===
+        const ContentPage = ({ data }) => (
+          <div className="a4-landscape bg-white flex flex-col relative border-[6px] border-gray-100 page-flip-anim" key={`page-${data.p}`}>
+            {/* Background Emojis */}
+            {data.bgEmojis && data.bgEmojis.map((emoji, index) => (
+                <div key={index} className={`bg-emoji ${index === 0 ? 'top-8 left-8 rotate-12' : index === 1 ? 'bottom-8 right-8 -rotate-12' : 'top-1/2 left-1/2 opacity-[0.08]'}`} style={{fontSize: index===2?'14rem':'5rem', zIndex: 0}}>
+                    {emoji}
+                </div>
+            ))}
+
+            {/* Header */}
+            <div className="flex justify-between items-end border-b-[5px] border-yellow-300 pb-3 mb-5 shrink-0 z-10">
+              <h2 className="text-3xl font-black text-orange-600 flex items-center bg-orange-50 px-6 py-2 rounded-t-2xl">
+                <span className="text-4xl mr-3">🚌</span> 500金句：交通＆觀光篇
+              </h2>
+              <div className="text-yellow-800 font-black bg-yellow-200 px-6 py-2 rounded-full shadow-sm text-xl border-2 border-yellow-300">
+                Page {data.p} / {totalPages}
+              </div>
+            </div>
+
+            {/* Content: 2 Columns */}
+            <div className="flex gap-6 flex-1 z-10 h-full">
+              {data.s1 && <SentenceCard data={data.s1} theme={(data.p % 2 === 1) ? 1 : 3} />}
+              {data.s2 && <SentenceCard data={data.s2} theme={(data.p % 2 === 1) ? 2 : 4} />}
+            </div>
+          </div>
+        );
+
+        // === 主程式 ===
+        function App() {
+          const [currentPage, setCurrentPage] = useState(0);
+
+          const handleNext = () => {
+              if (currentPage < totalPages) {
+                  setCurrentPage(prev => prev + 1);
+              }
+          };
+
+          const handlePrev = () => {
+              if (currentPage > 0) {
+                  setCurrentPage(prev => prev - 1);
+              }
+          };
+
+          return (
+            <div className="flex flex-col items-center w-full max-w-6xl">
+              
+              {/* 畫面展示區 */}
+              <div className="w-full relative">
+                  {currentPage === 0 ? (
+                      <CoverPage onNext={handleNext} />
+                  ) : (
+                      <ContentPage data={pagesData[currentPage - 1]} />
+                  )}
+              </div>
+
+              {/* 翻頁控制面板 */}
+              <div className="mt-10 flex items-center gap-8 bg-white px-8 py-4 rounded-full shadow-lg border-2 border-gray-200">
+                  <button 
+                      onClick={handlePrev} 
+                      disabled={currentPage === 0}
+                      className={`text-2xl font-black px-6 py-3 rounded-full transition-all duration-200 flex items-center gap-2
+                          ${currentPage === 0 ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-blue-100 text-blue-600 hover:bg-blue-200 hover:scale-105 shadow-md'}`}
+                  >
+                      ⬅️ 上一頁
+                  </button>
+                  
+                  <div className="text-2xl font-black text-gray-500 w-32 text-center">
+                      {currentPage === 0 ? "封面" : `${currentPage} / ${totalPages}`}
+                  </div>
+
+                  <button 
+                      onClick={handleNext} 
+                      disabled={currentPage === totalPages}
+                      className={`text-2xl font-black px-6 py-3 rounded-full transition-all duration-200 flex items-center gap-2
+                          ${currentPage === totalPages ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-105 shadow-md'}`}
+                  >
+                      下一頁 ➡️
+                  </button>
+              </div>
+              
+            </div>
+          );
+        }
+
+        // === 渲染至 DOM ===
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
